@@ -27,6 +27,9 @@ public class InputAudioManager : MonoBehaviour
     public double SpectrumAmplitudeMultiplier;
     private bool _isListening = false, _hasBeenSetup = false;
     public int FrequencyBandCount = 16;
+    // Variables for adaptive normalization
+    private double[] _avgBandVolume;
+    private double _adaptiveNormCoef = 0.9;
     public SpectrumNormalizationType SpectrumNormalization;
     
 
@@ -217,7 +220,20 @@ public class InputAudioManager : MonoBehaviour
                     case SpectrumNormalizationType.Adaptive:
                         {
                             // Siia lisada adaptive normaliseerimine, nt on massiiv, kus iga FrequencyBandCount'i kohta salvestada keskmine helitugevus massiivi.
-                            // Lıpptulemusel vıiks saada nii, et valueToAdd saab mingi koefitsendiga korrutatud, et kıigel oleks enam-v‰hem sama d¸naamika, mis teistel sagedustel
+                            // L√µpptulemusel v√µiks saada nii, et valueToAdd saab mingi koefitsendiga korrutatud, et k√µigel oleks enam-v√§hem sama d√ºnaamika, mis teistel sagedustel
+                            
+                            // Lisasin normaliseerimisloogika allapoole kui juba individuaalsete baridega tegeleme (line 256) -Richard
+
+                            // Initializing the _avgBandVolume array
+                            if (_avgBandVolume == null)
+                            {
+                                _avgBandVolume = new double[FrequencyBandCount];
+                                for (int j = 0; j < FrequencyBandCount; j++)
+                                {
+                                    _avgBandVolume[j] = 1.0;
+                                }
+                            }
+
                             break;
                         }
                     default:
@@ -236,6 +252,26 @@ public class InputAudioManager : MonoBehaviour
             }
             value = value / valuesCount;
             value *= SpectrumAmplitudeMultiplier;
+
+            /// Spectrum normalization: Adaptive (CALCULATION)
+            if (SpectrumNormalization == SpectrumNormalizationType.Adaptive)
+            {
+                // Update the running average for this freq. band
+                double oldAvgWeighted = _avgBandVolume[bandIndex] * _adaptiveNormCoef;
+                double newValWeighted = value * (1.0 - _adaptiveNormCoef);
+                _avgBandVolume[bandIndex] = oldAvgWeighted + newValWeighted;
+
+                // Normalize based on the tracked average
+                if (_avgBandVolume[bandIndex] > 0.0001)
+                {
+                    // Target bar value of 2.5 (smaller nr = lower bar)
+                    double normFactor = 2.5 / _avgBandVolume[bandIndex];
+
+                    normFactor = Math.Clamp(normFactor, 0.1, 30);
+                    value = value * normFactor;
+                }
+            }
+
             value = Double.IsNaN(value) ? 0 : value;
             points.Add(new SpectrumPointData { PointValue = value, PointIndex = currentSpectrumPointIndex });
             currentSpectrumPointIndex++;
