@@ -1,4 +1,5 @@
 # Project_AudioVisualizer
+## It is highly recommended to have a dedicated GPU to try this project since HDRP is pretty heavy on performance. The build has not been tested on integrated GPUs and performance will most likely not be smooth.
 To try the current build, download the .zip file from the link at the end of this readme, unzip it to a folder of your choice and then run it by executing **Project_AudioVisualizer.exe**.  
 Before the audio visualizer activates, you must select an audio output device from the lower right corner of the program. While microphones (or different input devices) show up as well, choosing one of them will not do anything. Instead select your speakers or headphones and play some music on your device and the visualizer should start working.  
 <img width="1708" height="962" alt="image" src="https://github.com/user-attachments/assets/1724b105-ba8f-4357-9724-62d9588a2f42" />
