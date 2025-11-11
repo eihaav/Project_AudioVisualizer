@@ -48,4 +48,8 @@ public class SettingsUI : MonoBehaviour
         newType += 1; // Since 0 is without normalization and we'd like to skip that
         InputAudioManager.Instance.SetNormalizationType(newType);
     }
+    public void ExitApplication()
+    {
+        Application.Quit();
+    }
 }
