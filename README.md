@@ -13,4 +13,4 @@ You can select different color schemes from the lower left corner of the screen 
   - This applies a scaling relative to the average energy of each frequency band which causes a fairly balanced representation across all frequency bands. This doesn't have as much detail as the other methods but it uses a wider range of the visualizer bars.
  
 
-Link to current build: [v0.1.0-alpha](https://github.com/eihaav/Project_AudioVisualizer/releases/tag/v0.1.0-alpha)
+Link to current build: [v0.1.1-alpha](https://github.com/eihaav/Project_AudioVisualizer/releases/tag/v0.1.1-alpha)
