@@ -1,4 +1,6 @@
 using UnityEngine;
+using UnityEngine.Rendering.HighDefinition;
+using UnityEngine.Rendering;
 using UnityEngine.VFX;
 
 public class EffectDriverBase : MonoBehaviour
@@ -45,5 +47,9 @@ public class EffectDriverBase : MonoBehaviour
     protected virtual void EffectPerObject(int effectObjectIndex, float effectPower)
     {
         _effectParentObjects[effectObjectIndex].transform.position = EffectCenter + ObjectOffset * effectObjectIndex;
+    }
+    public virtual void SetColorScheme(Color color1, Color color2)
+    {
+
     }
 }

@@ -1,4 +1,5 @@
 using CSCore.CoreAudioAPI;
+using System;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -7,6 +8,7 @@ public class SettingsUI : MonoBehaviour
 {
     public RectTransform AudioDeviceSelectionParent;
     public GameObject AudioDeviceButtonTemplate;
+    public TMP_Dropdown NormalizationTypeDropdown;
 
     private MMDeviceCollection _audioDevices;
 
@@ -14,6 +16,8 @@ public class SettingsUI : MonoBehaviour
     {
         _audioDevices = InputAudioManager.Instance.GetActiveAudioDevices();
         SetupAudioDeviceButtons(_audioDevices);
+        NormalizationTypeDropdown.onValueChanged.AddListener(NormalizationTypeChanged);
+        NormalizationTypeChanged(NormalizationTypeDropdown.value);
     }
 
     private void SetupAudioDeviceButtons(MMDeviceCollection audioDevices)
@@ -38,5 +42,10 @@ public class SettingsUI : MonoBehaviour
         button.onClick.AddListener(delegate { InputAudioManager.Instance.ChangeAudioDevice(indexOfDevice); });
         TextMeshProUGUI deviceText = newButtonObject.GetComponentInChildren<TextMeshProUGUI>();
         deviceText.text = device.FriendlyName;
+    }
+    private void NormalizationTypeChanged(int newType)
+    {
+        newType += 1; // Since 0 is without normalization and we'd like to skip that
+        InputAudioManager.Instance.SetNormalizationType(newType);
     }
 }

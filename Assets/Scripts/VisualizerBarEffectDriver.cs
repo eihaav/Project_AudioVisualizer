@@ -1,4 +1,6 @@
 using UnityEngine;
+using UnityEngine.Rendering;
+using UnityEngine.Rendering.HighDefinition;
 using UnityEngine.VFX;
 
 public class VisualizerBarEffectDriver : EffectDriverBase
@@ -8,12 +10,17 @@ public class VisualizerBarEffectDriver : EffectDriverBase
     private Light[] _lights;
     public Vector2 MinMaxLightIntensity;
     public Vector2 MinMaxParticleSpeed;
+    private Material _barMaterial;
+    private Volume _volume;
+    private VolumeProfile _volumeProfile;
     private void Start()
     {
         StartEffect();
     }
     public override void StartEffect()
     {
+        _volume = FindAnyObjectByType<Volume>();
+        _volumeProfile = _volume.sharedProfile;
         _bandCount = InputAudioManager.Instance.FrequencyBandCount;
 
         _effectParentObjects = new GameObject[_bandCount];
@@ -23,10 +30,17 @@ public class VisualizerBarEffectDriver : EffectDriverBase
         for (int i = 0; i < _bandCount; i++) 
         {
             _effectParentObjects[i] = Instantiate(EffectObjectPrefab);
-            _effectObjects[i] = _effectParentObjects[i].GetComponentInChildren<MeshRenderer>().gameObject;
+            MeshRenderer barRenderer = _effectParentObjects[i].GetComponentInChildren<MeshRenderer>();
+            if (_barMaterial == null) 
+            {
+                _barMaterial = barRenderer.material;
+            }
+            barRenderer.sharedMaterial = _barMaterial;
+            _effectObjects[i] = barRenderer.gameObject;
             _effectVisuals[i] = _effectParentObjects[i].GetComponentInChildren<VisualEffect>();
             _lights[i] = _effectParentObjects[i].GetComponentInChildren<Light>();
         }
+        ColorPresetManager.Instance.SetActiveEffectDriver(this);
     }
     private void Update()
     {
@@ -70,6 +84,38 @@ public class VisualizerBarEffectDriver : EffectDriverBase
             light.transform.localPosition = lightPos;
             float lightIntensity = Mathf.Lerp(MinMaxLightIntensity.x, MinMaxLightIntensity.y, Mathf.Clamp01(scaledEffectPower / MaxEffectStrength));
             light.intensity = lightIntensity;
+        }
+    }
+    public override void SetColorScheme(Color color1, Color color2)
+    {
+        _barMaterial.SetColor("_ColorGradient1", color1);
+        _barMaterial.SetColor("_ColorGradient2", color2);
+        foreach (Light light in _lights) 
+        {
+            light.color = color2;
+        }
+        Gradient gradient = new Gradient();
+        GradientColorKey[] colorKeys = new GradientColorKey[2];
+        colorKeys[0].time = 0.33f;
+        colorKeys[0].color = color2 * 16f;
+        colorKeys[1].time = 0.66f;
+        colorKeys[1].color = color1 * 16f;
+        GradientAlphaKey[] alphaKeys = new GradientAlphaKey[3];
+        alphaKeys[0].time = 0f;
+        alphaKeys[0].alpha = 1.0f;
+        alphaKeys[1].time = 0.8f;
+        alphaKeys[1].alpha = 1.0f;
+        alphaKeys[2].time = 1.00f;
+        alphaKeys[2].alpha = 0f;
+        gradient.SetKeys(colorKeys, alphaKeys);
+        foreach (VisualEffect effect in _effectVisuals)
+        {
+            effect.SetGradient("ColorGradient", gradient);
+        }
+        if (_volumeProfile.TryGet<PhysicallyBasedSky>(out var sky))
+        {
+            sky.horizonTint.Override(color1);
+            sky.zenithTint.Override(color2);
         }
     }
     /*private void EffectPerObject(GameObject effectObject, float effectPower, VisualEffect visualEffect)

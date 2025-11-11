@@ -6,6 +6,7 @@ using System;
 using CSCore.SoundIn;
 using System.Collections.Generic;
 using CSCore.DSP;
+using static InputAudioManager;
 public class InputAudioManager : MonoBehaviour
 {
     public double MinimumLoudnessDb = -90.0, MaximumLoudnessDb = 0.0;
@@ -282,7 +283,10 @@ public class InputAudioManager : MonoBehaviour
         }
         return points.ToArray();
     }
-
+    public void SetNormalizationType(int type)
+    {
+        SpectrumNormalization = (SpectrumNormalizationType) type;
+    }
     public struct SpectrumPointData
     {
         public int PointIndex;
