@@ -1828,6 +1828,7 @@ MonoBehaviour:
   SpectrumAmplitudeMultiplier: 30
   FrequencyBandCount: 32
   SpectrumNormalization: 1
+  GainAmplifier: 2.5
 --- !u!4 &1820242627
 Transform:
   m_ObjectHideFlags: 0

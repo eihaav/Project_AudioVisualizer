@@ -10,7 +10,7 @@ public class InputAudioManager : MonoBehaviour
 {
     public double MinimumLoudnessDb = -90.0, MaximumLoudnessDb = 0.0;
     public static InputAudioManager Instance;
-    private const int _maxFrequency = 15000, _minFrequency = 20;
+    private const int _maxFrequency = 8000, _minFrequency = 20;
     private int _maxFrequencyIndex, _minFrequencyIndex;
     private CSCore.SoundIn.WasapiLoopbackCapture audioLoopback;
     public int currentActiveAudioDevice = 1;
@@ -31,6 +31,7 @@ public class InputAudioManager : MonoBehaviour
     private double[] _avgBandVolume;
     private double _adaptiveNormCoef = 0.9;
     public SpectrumNormalizationType SpectrumNormalization;
+    public float GainAmplifier = 1.0f;
     
 
     private void Awake()
@@ -180,7 +181,8 @@ public class InputAudioManager : MonoBehaviour
         int sampleRate = _realtimeWaveSource.WaveFormat.SampleRate;
         double frequencyStep = sampleRate / (double)_fftSize;
         double logFactor = Math.Log(_maxFrequency / (double)_minFrequency);
-        float outputVolume = _currentAudioEndPoint.MasterVolumeLevelScalar;
+        float outputVolume = 1.0f;//_currentAudioEndPoint.MasterVolumeLevelScalar;
+        //outputVolume = (float)Math.Log10(outputVolume);
         //Debug.Log("Current output volume: " + outputVolume);
         for (int bandIndex = 0; bandIndex < FrequencyBandCount; bandIndex++) 
         {
@@ -205,6 +207,7 @@ public class InputAudioManager : MonoBehaviour
                         {
                             double currentBandFrequency = (currentBandMaxFreq - currentBandMinFreq) * (i / (currentMaxIndex - currentMinIndex));
                             double gain = Math.Sqrt(currentBandFrequency / _minFrequency);
+                            gain *= GainAmplifier;
                             gain /= (double)outputVolume;
                             valueToAdd = valueToAdd * gain;
                             break;
@@ -213,6 +216,7 @@ public class InputAudioManager : MonoBehaviour
                         {
                             double currentBandFrequency = (currentBandMaxFreq - currentBandMinFreq) * (i / (currentMaxIndex - currentMinIndex));
                             double gain = Math.Pow(currentBandFrequency / 1000.0, 0.3);
+                            gain *= GainAmplifier;
                             gain /= (double)outputVolume;
                             valueToAdd = valueToAdd * gain;
                             break;
