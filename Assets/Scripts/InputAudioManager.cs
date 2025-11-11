@@ -32,7 +32,7 @@ public class InputAudioManager : MonoBehaviour
     private double[] _avgBandVolume;
     private double _adaptiveNormCoef = 0.9;
     public SpectrumNormalizationType SpectrumNormalization;
-    public float GainAmplifier = 1.0f;
+    public float GainAmplifier = 1.0f, PsychoacousticGainAmplifier = 3.0f;
     
 
     private void Awake()
@@ -217,7 +217,7 @@ public class InputAudioManager : MonoBehaviour
                         {
                             double currentBandFrequency = (currentBandMaxFreq - currentBandMinFreq) * (i / (currentMaxIndex - currentMinIndex));
                             double gain = Math.Pow(currentBandFrequency / 1000.0, 0.3);
-                            gain *= GainAmplifier;
+                            gain *= GainAmplifier * PsychoacousticGainAmplifier;
                             gain /= (double)outputVolume;
                             valueToAdd = valueToAdd * gain;
                             break;
