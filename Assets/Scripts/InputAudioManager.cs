@@ -28,12 +28,37 @@ public class InputAudioManager : MonoBehaviour
     public double SpectrumAmplitudeMultiplier;
     private bool _isListening = false, _hasBeenSetup = false;
     public int FrequencyBandCount = 16;
+
     // Variables for adaptive normalization
     private double[] _avgBandVolume;
     private double _adaptiveNormCoef = 0.9;
     public SpectrumNormalizationType SpectrumNormalization;
     public float GainAmplifier = 1.0f, PsychoacousticGainAmplifier = 3.0f;
-    
+
+    // Variables for beat detection
+    public bool EnableBeatDetection = true;
+
+    public float BeatMinHz = 30f;
+    public float BeatMaxHz = 180f;
+
+    [Range(0.0f, 0.999f)]
+    public float BeatAvgCoef = 0.97f; // Running average smoothing
+    public float BeatThresholdMultiplier = 1.6f;
+    public float BeatStrengthScale = 1.0f;
+    public float BeatDecayPerSecond = 8.0f;
+    public float BeatMinInterval = 0.10f; // Avoid double triggers
+    public float BeatStrength { get; private set; } = 0f;
+    private double _bassAvg = 0.0;
+    private double _lastBeatTime = -999.0;
+
+    public float BeatFreezePreviewMultiplier = 1.10f;
+    public float BeatHoldSeconds = 0.05f;
+
+    private double _prevBassEnergy = 0.0;
+    private double _beatHoldUntil = 0.0;
+
+
+
 
     private void Awake()
     {
@@ -166,14 +191,84 @@ public class InputAudioManager : MonoBehaviour
     public SpectrumPointData[] GetSpectrumData()
     {
         if (_fftProvider == null) return null;
+
         float[] fftBuffer = new float[(int)_fftSize];
         if (_fftProvider.GetFftData(fftBuffer))
         {
+            if (EnableBeatDetection)
+                UpdateBeatStrengthFromFft(fftBuffer);
+
             var points = GetSpectrumPoints(fftBuffer, 1.0d);
             return points;
         }
         return null;
     }
+
+    private void UpdateBeatStrengthFromFft(float[] fftBuffer)
+    {
+        if (_realtimeWaveSource == null || fftBuffer == null || fftBuffer.Length == 0)
+            return;
+
+        int sampleRate = _realtimeWaveSource.WaveFormat.SampleRate;
+        double frequencyStep = sampleRate / (double)_fftSize;
+
+        int minIndex = (int)(BeatMinHz / frequencyStep);
+        int maxIndex = (int)(BeatMaxHz / frequencyStep);
+
+        minIndex = Math.Clamp(minIndex, 0, fftBuffer.Length - 1);
+        maxIndex = Math.Clamp(maxIndex, minIndex + 1, fftBuffer.Length);
+
+        // RMS over the low-frequency band
+        double sumSq = 0.0;
+        int count = 0;
+        for (int i = minIndex; i < maxIndex; i++)
+        {
+            double v = fftBuffer[i];
+            sumSq += v * v;
+            count++;
+        }
+        if (count <= 0) return;
+
+        double bassEnergy = Math.Sqrt(sumSq / count);
+
+        // Initialize running average on first run
+        if (_bassAvg <= 0.0) _bassAvg = bassEnergy;
+
+        // Fix to not "learn" the kick part of a song (kinda works)
+        double thresholdPreview = _bassAvg * BeatFreezePreviewMultiplier;
+        double coef = (bassEnergy > thresholdPreview) ? 0.995 : BeatAvgCoef;
+        _bassAvg = coef * _bassAvg + (1.0 - coef) * bassEnergy;
+
+        // Hold + decay
+        if (Time.time >= _beatHoldUntil)
+            BeatStrength = Mathf.Max(0f, BeatStrength - BeatDecayPerSecond * Time.deltaTime);
+
+        // Trigger threshold
+        double threshold = _bassAvg * BeatThresholdMultiplier;
+
+        double now = Time.time;
+        bool canTrigger = (now - _lastBeatTime) >= BeatMinInterval;
+
+        // Only trigger when bass energy is rising
+        bool rising = bassEnergy > _prevBassEnergy;
+        _prevBassEnergy = bassEnergy;
+
+        if (canTrigger && rising && bassEnergy > threshold)
+        {
+            // Strength based on how far above threshold we are
+            double ratio = bassEnergy / Math.Max(threshold, 1e-6);
+            float strength = (float)Math.Clamp((ratio - 1.0) * BeatStrengthScale, 0.0, 1.0);
+
+            BeatStrength = Mathf.Max(BeatStrength, strength);
+            _lastBeatTime = now;
+            _beatHoldUntil = now + BeatHoldSeconds;
+
+            Debug.Log($"BEAT! strength={BeatStrength:0.00}, bass={bassEnergy:0.000}, avg={_bassAvg:0.000}, thr={threshold:0.000}");
+        }
+    }
+
+
+
     private SpectrumPointData[] GetSpectrumPoints(float[] fftBuffer, double maxValue)
     {
         List<SpectrumPointData> points = new List<SpectrumPointData>();
