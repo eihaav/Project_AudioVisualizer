@@ -1,5 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Rendering.HighDefinition;
+using UnityEngine.Rendering;
 using UnityEngine.VFX;
 
 public class HexRippleEffectDriver : EffectDriverBase
@@ -13,10 +15,28 @@ public class HexRippleEffectDriver : EffectDriverBase
     public string HexDisplacementTexturePropertyName = "_DisplacementTexture";
     private List<RippleInstance> _activeRipples = new List<RippleInstance>();
     public AnimationCurve AlphaCurve;
+    private Volume _volume;
+    private VolumeProfile _volumeProfile;
     //private bool hasRippleStarted = false;
     private void Awake()
     {
         HexDisplacementMaterial = HexDisplacementRenderer.sharedMaterial;
+    }
+    public override void StartEffect()
+    {
+        _volume = FindAnyObjectByType<Volume>();
+        _volumeProfile = _volume.sharedProfile;
+        _bandCount = InputAudioManager.Instance.FrequencyBandCount;
+
+        _effectParentObjects = new GameObject[_bandCount];
+        _effectObjects = new GameObject[_bandCount];
+
+        for (int i = 0; i < _bandCount; i++)
+        {
+            _effectParentObjects[i] = Instantiate(EffectObjectPrefab);
+            _effectObjects[i] = _effectParentObjects[i];
+        }
+        ColorPresetManager.Instance.SetActiveEffectDriver(this);
     }
     private void Update()
     {
@@ -84,33 +104,21 @@ public class HexRippleEffectDriver : EffectDriverBase
         spriteRenderer.color = color;
         
     }
-    /*protected override void EffectPerObject(int effectObjectIndex, float effectPower)
+    public override void SetColorScheme(Color color1, Color color2)
     {
-        base.EffectPerObject(effectObjectIndex, effectPower);
-        GameObject effectObject = _effectObjects[effectObjectIndex];
-        Vector3 scale = effectObject.transform.localScale;
-        float scaledEffectPower = effectPower * effectAmplitudeMultiplier;
-        scale.y = Mathf.Clamp(scaledEffectPower, 0.00000001f, 9999f);
-        effectObject.transform.localScale = scale;
-        VisualEffect visualEffect = _effectVisuals[effectObjectIndex];
-        if (visualEffect != null)
+        HexDisplacementMaterial.SetColor("_ColorGradient1", color1);
+        HexDisplacementMaterial.SetColor("_ColorGradient2", color2);
+        if (_volumeProfile.TryGet<PhysicallyBasedSky>(out var sky))
         {
-            visualEffect.SetVector3("Scale", scale);
-            int effectParticleAmount = (int)(effectPower * effectAmplitudeMultiplier * visualEffectParticleAmount);
-            visualEffect.SetInt("EmissionIntensity", effectParticleAmount);
-            float particleSpeed = Mathf.Lerp(MinMaxParticleSpeed.x, MinMaxParticleSpeed.y, Mathf.Clamp01(scaledEffectPower / MaxEffectStrength));
-            visualEffect.SetFloat("SpeedMultiplier", particleSpeed);
+            sky.horizonTint.Override(color1);
+            sky.zenithTint.Override(color2);
         }
-        Light light = _lights[effectObjectIndex];
-        if (light != null)
+        if (_volumeProfile.TryGet<Fog>(out var fog))
         {
-            Vector3 lightPos = light.transform.localPosition;
-            lightPos.y = scaledEffectPower / 2;
-            light.transform.localPosition = lightPos;
-            float lightIntensity = Mathf.Lerp(MinMaxLightIntensity.x, MinMaxLightIntensity.y, Mathf.Clamp01(scaledEffectPower / MaxEffectStrength));
-            light.intensity = lightIntensity;
+            fog.albedo.overrideState = true;
+            fog.albedo.Override(color1);
         }
-    }*/
+    }
     private class RippleInstance
     {
         public GameObject RippleObj;

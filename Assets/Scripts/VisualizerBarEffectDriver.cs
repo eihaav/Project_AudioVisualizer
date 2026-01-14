@@ -13,6 +13,7 @@ public class VisualizerBarEffectDriver : EffectDriverBase
     private Material _barMaterial;
     private Volume _volume;
     private VolumeProfile _volumeProfile;
+    public Light SunLight;
     private void Start()
     {
         StartEffect();
@@ -90,6 +91,7 @@ public class VisualizerBarEffectDriver : EffectDriverBase
     {
         _barMaterial.SetColor("_ColorGradient1", color1);
         _barMaterial.SetColor("_ColorGradient2", color2);
+        SunLight.color = color2;
         foreach (Light light in _lights) 
         {
             light.color = color2;
@@ -116,6 +118,11 @@ public class VisualizerBarEffectDriver : EffectDriverBase
         {
             sky.horizonTint.Override(color1);
             sky.zenithTint.Override(color2);
+        }
+        if (_volumeProfile.TryGet<Fog>(out var fog))
+        {
+            fog.albedo.overrideState = true;
+            fog.albedo.Override(color1);
         }
     }
     /*private void EffectPerObject(GameObject effectObject, float effectPower, VisualEffect visualEffect)

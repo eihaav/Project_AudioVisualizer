@@ -18,6 +18,10 @@ public class WaterRippleDriver : BeatDriverBase
     private float rollingAverageBeat = 0f;
     public float BeatSmoothing = 0.1f;
 
+    private void Start()
+    {
+        ColorPresetManager.Instance.SetActiveBeatDriver(this);
+    }
     void Update()
     {
         DriveEffect();
@@ -80,7 +84,21 @@ public class WaterRippleDriver : BeatDriverBase
     }
     public override void SetColorScheme(Color color1, Color color2)
     {
-        // TO-DO: Implement color scheme
+        Gradient gradient = new Gradient();
+        GradientColorKey[] colorKeys = new GradientColorKey[2];
+        colorKeys[0].time = 0.33f;
+        colorKeys[0].color = color2 * 16f;
+        colorKeys[1].time = 0.66f;
+        colorKeys[1].color = color1 * 16f;
+        GradientAlphaKey[] alphaKeys = new GradientAlphaKey[3];
+        alphaKeys[0].time = 0f;
+        alphaKeys[0].alpha = 1.0f;
+        alphaKeys[1].time = 0.8f;
+        alphaKeys[1].alpha = 1.0f;
+        alphaKeys[2].time = 1.00f;
+        alphaKeys[2].alpha = 0f;
+        gradient.SetKeys(colorKeys, alphaKeys);
+        BeatParticleExplosion.SetGradient("ColorGradient", gradient);
     }
     private class RippleInstance
     {

@@ -10,6 +10,7 @@ public class ColorPresetManager : MonoBehaviour
     public static ColorPresetManager Instance;
 
     private EffectDriverBase _effectDriver;
+    private BeatDriverBase _beatDriver;
     private int currentActivePreset = -1;
     private void Awake()
     {
@@ -25,6 +26,23 @@ public class ColorPresetManager : MonoBehaviour
         if (currentActivePreset == -1) 
         {
             SetColorPreset(ColorPresets[0]);
+        }
+        else
+        {
+            SetColorPreset(ColorPresets[currentActivePreset]);
+        }
+    }
+    public void SetActiveBeatDriver(BeatDriverBase driver)
+    {
+        _beatDriver = driver;
+        
+        if (currentActivePreset == -1)
+        {
+            SetColorPreset(ColorPresets[0]);
+        }
+        else
+        {
+            SetColorPreset(ColorPresets[currentActivePreset]);
         }
     }
     private void GenerateButtons()
@@ -49,6 +67,10 @@ public class ColorPresetManager : MonoBehaviour
         if (_effectDriver != null)
         {
             _effectDriver.SetColorScheme(preset.color1, preset.color2);
+        }
+        if (_beatDriver != null)
+        {
+            _beatDriver.SetColorScheme(preset.color1, preset.color2);
         }
         currentActivePreset = ColorPresets.IndexOf(preset);
     }
