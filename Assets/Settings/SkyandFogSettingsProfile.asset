@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 384c4d03a551c44448145f4093304119, type: 3}
   m_Name: ScreenSpaceReflection
   m_EditorClassIdentifier: 
-  active: 1
+  active: 0
   quality:
     m_OverrideState: 1
     m_Value: 3
@@ -209,8 +209,8 @@ MonoBehaviour:
     m_OverrideState: 0
     m_Value: 20000
   groundTint:
-    m_OverrideState: 0
-    m_Value: {r: 0.122641504, g: 0.1043775, b: 0.09313812, a: 1}
+    m_OverrideState: 1
+    m_Value: {r: 0, g: 0, b: 0, a: 1}
   groundColorTexture:
     m_OverrideState: 0
     m_Value: {fileID: 0}
@@ -243,12 +243,12 @@ MonoBehaviour:
     m_Value: 1
   horizonTint:
     m_OverrideState: 1
-    m_Value: {r: 0.3721075, g: 0.65766835, b: 0.6981132, a: 1}
+    m_Value: {r: 0.15824132, g: 0.4743445, b: 0.4792453, a: 1}
   zenithTint:
     m_OverrideState: 1
-    m_Value: {r: 1, g: 0, b: 0.52186584, a: 1}
+    m_Value: {r: 0, g: 0.52126217, b: 1, a: 1}
   horizonZenithShift:
-    m_OverrideState: 1
+    m_OverrideState: 0
     m_Value: -0.61
   m_SkyVersion: 2
   m_ObsoleteEarthPreset:
@@ -272,7 +272,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 953beb541740ddc499d005ee80c9ff29, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  active: 1
+  active: 0
   quality:
     m_OverrideState: 0
     m_Value: 1
@@ -363,7 +363,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7e9e4ed5a6f56fb4ebd693e39684f36f, type: 3}
   m_Name: VolumetricClouds
   m_EditorClassIdentifier: 
-  active: 1
+  active: 0
   enable:
     m_OverrideState: 0
     m_Value: 0
@@ -744,7 +744,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e88178bb13f64a54f90d6cd6ef7aa9a1, type: 3}
   m_Name: CloudLayer
   m_EditorClassIdentifier: 
-  active: 1
+  active: 0
   opacity:
     m_OverrideState: 1
     m_Value: 1
@@ -907,7 +907,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 24f077503be6ae942a1e1245dbd53ea9, type: 3}
   m_Name: Bloom
   m_EditorClassIdentifier: 
-  active: 1
+  active: 0
   quality:
     m_OverrideState: 1
     m_Value: 3

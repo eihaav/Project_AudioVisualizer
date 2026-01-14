@@ -43,13 +43,16 @@ public class InputAudioManager : MonoBehaviour
 
     [Range(0.0f, 0.999f)]
     public float BeatAvgCoef = 0.97f; // Running average smoothing
+    public float BeatDeltaAvgCoef = 0.85f;
     public float BeatThresholdMultiplier = 1.6f;
     public float BeatStrengthScale = 1.0f;
     public float BeatDecayPerSecond = 8.0f;
     public float BeatMinInterval = 0.10f; // Avoid double triggers
     public float BeatStrength { get; private set; } = 0f;
+    public double MinBeatAvg = 0.003, MaxBeatAvg = 0.0125;
     private double _bassAvg = 0.0;
     private double _lastBeatTime = -999.0;
+    private float _returnableBeatStrength = 0f;
 
     public float BeatFreezePreviewMultiplier = 1.10f;
     public float BeatHoldSeconds = 0.05f;
@@ -59,10 +62,18 @@ public class InputAudioManager : MonoBehaviour
 
 
 
-
     private void Awake()
     {
-        Instance = this;
+        if (Instance == null)
+        {
+            Instance = this;
+            DontDestroyOnLoad(gameObject);
+        }
+        else if (Instance != this)
+        {
+            Destroy(gameObject);
+            return;
+        }
         audioLoopback = new CSCore.SoundIn.WasapiLoopbackCapture();
         MMDeviceEnumerator devEnum = new MMDeviceEnumerator();
         _deviceCollection = devEnum.EnumAudioEndpoints(DataFlow.All, DeviceState.Active);
@@ -77,9 +88,9 @@ public class InputAudioManager : MonoBehaviour
     }
     private void Update()
     {
-        if (refreshAudioDevice) 
+        if (refreshAudioDevice)
         {
-            if (currentActiveAudioDevice < _deviceCollection.Count) 
+            if (currentActiveAudioDevice < _deviceCollection.Count)
             {
                 SetupLoopbackDevice(_deviceCollection.ItemAt(currentActiveAudioDevice));
             }
@@ -89,15 +100,15 @@ public class InputAudioManager : MonoBehaviour
             }
             refreshAudioDevice = false;
         }
-        if (_isListening) 
+        if (_isListening)
         {
             //GetSpectrumData();
-        }        
+        }
     }
     public void ChangeAudioDevice(int index)
     {
         currentActiveAudioDevice = index;
-        if (_isListening) 
+        if (_isListening)
         {
             StopListening();
         }
@@ -132,7 +143,7 @@ public class InputAudioManager : MonoBehaviour
             DisposeOfLoopback();
             return;
         }
-        
+
         _soundInSource = new SoundInSource(audioLoopback);
         _hasBeenSetup = true;
     }
@@ -162,12 +173,12 @@ public class InputAudioManager : MonoBehaviour
         _waveBuffer = new byte[_realtimeWaveSource.WaveFormat.BytesPerSecond / 2];
         _soundInSource.DataAvailable += SoundDataReceived;
         _fftProvider = new FftProvider(_realtimeWaveSource.WaveFormat.Channels, _fftSize);
-        
+
         _isListening = true;
     }
     private void DisposeOfLoopback()
     {
-        if (_soundInSource != null) 
+        if (_soundInSource != null)
             _soundInSource.Dispose();
         if (audioLoopback != null)
         {
@@ -181,7 +192,7 @@ public class InputAudioManager : MonoBehaviour
         while ((read = _realtimeWaveSource.Read(_waveBuffer, 0, _waveBuffer.Length)) > 0)
         {
             int bytesPerSample = _realtimeWaveSource.WaveFormat.BytesPerSample;
-            for (int i = 0; i < read; i+= bytesPerSample)
+            for (int i = 0; i < read; i += bytesPerSample)
             {
                 float sample = BitConverter.ToSingle(_waveBuffer, i);
                 _fftProvider.Add(sample, sample);
@@ -195,10 +206,9 @@ public class InputAudioManager : MonoBehaviour
         float[] fftBuffer = new float[(int)_fftSize];
         if (_fftProvider.GetFftData(fftBuffer))
         {
+            var points = GetSpectrumPoints(fftBuffer, 1.0d);
             if (EnableBeatDetection)
                 UpdateBeatStrengthFromFft(fftBuffer);
-
-            var points = GetSpectrumPoints(fftBuffer, 1.0d);
             return points;
         }
         return null;
@@ -206,73 +216,61 @@ public class InputAudioManager : MonoBehaviour
 
     private void UpdateBeatStrengthFromFft(float[] fftBuffer)
     {
-        if (_realtimeWaveSource == null || fftBuffer == null || fftBuffer.Length == 0)
-            return;
-
+        if (_realtimeWaveSource == null || fftBuffer == null || fftBuffer.Length == 0) return;
         int sampleRate = _realtimeWaveSource.WaveFormat.SampleRate;
         double frequencyStep = sampleRate / (double)_fftSize;
-
         int minIndex = (int)(BeatMinHz / frequencyStep);
         int maxIndex = (int)(BeatMaxHz / frequencyStep);
-
         minIndex = Math.Clamp(minIndex, 0, fftBuffer.Length - 1);
         maxIndex = Math.Clamp(maxIndex, minIndex + 1, fftBuffer.Length);
-
         // RMS over the low-frequency band
-        double sumSq = 0.0;
-        int count = 0;
+        double sumSq = 0.0; int count = 0;
         for (int i = minIndex; i < maxIndex; i++)
-        {
-            double v = fftBuffer[i];
-            sumSq += v * v;
-            count++;
+        { 
+            double v = fftBuffer[i]; sumSq += v * v; count++; 
         }
-        if (count <= 0) return;
-
+        if (count <= 0) return; 
         double bassEnergy = Math.Sqrt(sumSq / count);
-
         // Initialize running average on first run
         if (_bassAvg <= 0.0) _bassAvg = bassEnergy;
-
         // Fix to not "learn" the kick part of a song (kinda works)
         double thresholdPreview = _bassAvg * BeatFreezePreviewMultiplier;
         double coef = (bassEnergy > thresholdPreview) ? 0.995 : BeatAvgCoef;
-        _bassAvg = coef * _bassAvg + (1.0 - coef) * bassEnergy;
-
-        // Hold + decay
+        _bassAvg = coef * _bassAvg + (1.0 - coef) * bassEnergy; // Hold + decay
+        _bassAvg = Math.Clamp(_bassAvg, MinBeatAvg, MaxBeatAvg);
         if (Time.time >= _beatHoldUntil)
             BeatStrength = Mathf.Max(0f, BeatStrength - BeatDecayPerSecond * Time.deltaTime);
-
         // Trigger threshold
         double threshold = _bassAvg * BeatThresholdMultiplier;
-
         double now = Time.time;
-        bool canTrigger = (now - _lastBeatTime) >= BeatMinInterval;
-
-        // Only trigger when bass energy is rising
+        bool canTrigger = (now - _lastBeatTime) >= BeatMinInterval; // Only trigger when bass energy is rising
         bool rising = bassEnergy > _prevBassEnergy;
         _prevBassEnergy = bassEnergy;
-
         if (canTrigger && rising && bassEnergy > threshold)
         {
-            // Strength based on how far above threshold we are
             double ratio = bassEnergy / Math.Max(threshold, 1e-6);
             float strength = (float)Math.Clamp((ratio - 1.0) * BeatStrengthScale, 0.0, 1.0);
-
-            BeatStrength = Mathf.Max(BeatStrength, strength);
+            BeatStrength = Mathf.Max(BeatStrength, strength); // Strength based on how far above threshold we are
             _lastBeatTime = now;
             _beatHoldUntil = now + BeatHoldSeconds;
-
             Debug.Log($"BEAT! strength={BeatStrength:0.00}, bass={bassEnergy:0.000}, avg={_bassAvg:0.000}, thr={threshold:0.000}");
+            _returnableBeatStrength = BeatStrength;
+        }
+        else
+        { 
+            _returnableBeatStrength = 0f;
         }
     }
 
-
+    public float GetBeatStrength()
+    {
+        return _returnableBeatStrength;
+    }
 
     private SpectrumPointData[] GetSpectrumPoints(float[] fftBuffer, double maxValue)
     {
         List<SpectrumPointData> points = new List<SpectrumPointData>();
-        
+
         int currentSpectrumPointIndex = 0;
         int sampleRate = _realtimeWaveSource.WaveFormat.SampleRate;
         double frequencyStep = sampleRate / (double)_fftSize;
@@ -280,7 +278,7 @@ public class InputAudioManager : MonoBehaviour
         float outputVolume = 1.0f;//_currentAudioEndPoint.MasterVolumeLevelScalar;
         //outputVolume = (float)Math.Log10(outputVolume);
         //Debug.Log("Current output volume: " + outputVolume);
-        for (int bandIndex = 0; bandIndex < FrequencyBandCount; bandIndex++) 
+        for (int bandIndex = 0; bandIndex < FrequencyBandCount; bandIndex++)
         {
             double value = 0;
             int valuesCount = 0;
@@ -321,7 +319,7 @@ public class InputAudioManager : MonoBehaviour
                         {
                             // Siia lisada adaptive normaliseerimine, nt on massiiv, kus iga FrequencyBandCount'i kohta salvestada keskmine helitugevus massiivi.
                             // Lõpptulemusel võiks saada nii, et valueToAdd saab mingi koefitsendiga korrutatud, et kõigel oleks enam-vähem sama dünaamika, mis teistel sagedustel
-                            
+
                             // Lisasin normaliseerimisloogika allapoole kui juba individuaalsete baridega tegeleme (line 256) -Richard
 
                             // Initializing the _avgBandVolume array
@@ -380,7 +378,7 @@ public class InputAudioManager : MonoBehaviour
     }
     public void SetNormalizationType(int type)
     {
-        SpectrumNormalization = (SpectrumNormalizationType) type;
+        SpectrumNormalization = (SpectrumNormalizationType)type;
     }
     public struct SpectrumPointData
     {
