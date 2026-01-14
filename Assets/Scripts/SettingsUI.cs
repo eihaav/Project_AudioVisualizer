@@ -180,7 +180,7 @@ public class SettingsUI : MonoBehaviour
         if (_volumeProfile.TryGet<Bloom>(out var bloomComp))
         {
             ClampedFloatParameter value = bloomComp.intensity;
-            value.value = bloom ? 0.83f : 0f;
+            value.value = bloom ? 0.49f : 0f;
             bloomComp.intensity = value;
             ScalableSettingLevelParameter setting = bloomComp.quality;
             setting.overrideState = true;

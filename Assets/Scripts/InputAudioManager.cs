@@ -157,6 +157,7 @@ public class InputAudioManager : MonoBehaviour
     }
     private void OnDisable()
     {
+        if (Instance != this) return;
         StopListening();
     }
     public void StartListening()
@@ -253,7 +254,7 @@ public class InputAudioManager : MonoBehaviour
             BeatStrength = Mathf.Max(BeatStrength, strength); // Strength based on how far above threshold we are
             _lastBeatTime = now;
             _beatHoldUntil = now + BeatHoldSeconds;
-            Debug.Log($"BEAT! strength={BeatStrength:0.00}, bass={bassEnergy:0.000}, avg={_bassAvg:0.000}, thr={threshold:0.000}");
+            //Debug.Log($"BEAT! strength={BeatStrength:0.00}, bass={bassEnergy:0.000}, avg={_bassAvg:0.000}, thr={threshold:0.000}");
             _returnableBeatStrength = BeatStrength;
         }
         else
