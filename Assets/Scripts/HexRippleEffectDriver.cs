@@ -17,6 +17,7 @@ public class HexRippleEffectDriver : EffectDriverBase
     public AnimationCurve AlphaCurve;
     private Volume _volume;
     private VolumeProfile _volumeProfile;
+    public int[] OffsetIndices;
     //private bool hasRippleStarted = false;
     private void Awake()
     {
@@ -52,7 +53,7 @@ public class HexRippleEffectDriver : EffectDriverBase
         }
         for (int i = 0; i < _bandCount; i++)
         {
-            _effectParentObjects[i].transform.position = EffectCenter + ObjectOffset * i;
+            _effectParentObjects[i].transform.position = EffectCenter + ObjectOffset * OffsetIndices[i];
             float pointValue = (float)effectPowers[i].PointValue;
             if (pointValue >= EffectThreshold)
             {

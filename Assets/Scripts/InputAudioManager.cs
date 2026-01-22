@@ -60,6 +60,8 @@ public class InputAudioManager : MonoBehaviour
     private double _prevBassEnergy = 0.0;
     private double _beatHoldUntil = 0.0;
 
+    private bool _applyEndPointScalar = false;
+
 
 
     private void Awake()
@@ -218,6 +220,12 @@ public class InputAudioManager : MonoBehaviour
     private void UpdateBeatStrengthFromFft(float[] fftBuffer)
     {
         if (_realtimeWaveSource == null || fftBuffer == null || fftBuffer.Length == 0) return;
+        float outputVolume = 1.0f;//_currentAudioEndPoint.MasterVolumeLevelScalar;
+        if (_applyEndPointScalar)
+        {
+            outputVolume = _currentAudioEndPoint.MasterVolumeLevelScalar;
+        }
+
         int sampleRate = _realtimeWaveSource.WaveFormat.SampleRate;
         double frequencyStep = sampleRate / (double)_fftSize;
         int minIndex = (int)(BeatMinHz / frequencyStep);
@@ -230,7 +238,9 @@ public class InputAudioManager : MonoBehaviour
         { 
             double v = fftBuffer[i]; sumSq += v * v; count++; 
         }
-        if (count <= 0) return; 
+        if (count <= 0) return;
+
+        sumSq /= outputVolume;
         double bassEnergy = Math.Sqrt(sumSq / count);
         // Initialize running average on first run
         if (_bassAvg <= 0.0) _bassAvg = bassEnergy;
@@ -277,6 +287,10 @@ public class InputAudioManager : MonoBehaviour
         double frequencyStep = sampleRate / (double)_fftSize;
         double logFactor = Math.Log(_maxFrequency / (double)_minFrequency);
         float outputVolume = 1.0f;//_currentAudioEndPoint.MasterVolumeLevelScalar;
+        if (_applyEndPointScalar)
+        {
+            outputVolume = _currentAudioEndPoint.MasterVolumeLevelScalar;
+        }
         //outputVolume = (float)Math.Log10(outputVolume);
         //Debug.Log("Current output volume: " + outputVolume);
         for (int bandIndex = 0; bandIndex < FrequencyBandCount; bandIndex++)
@@ -303,7 +317,7 @@ public class InputAudioManager : MonoBehaviour
                             double currentBandFrequency = (currentBandMaxFreq - currentBandMinFreq) * (i / (currentMaxIndex - currentMinIndex));
                             double gain = Math.Sqrt(currentBandFrequency / _minFrequency);
                             gain *= GainAmplifier;
-                            gain /= (double)outputVolume;
+                            //gain /= (double)outputVolume;
                             valueToAdd = valueToAdd * gain;
                             break;
                         }
@@ -312,7 +326,7 @@ public class InputAudioManager : MonoBehaviour
                             double currentBandFrequency = (currentBandMaxFreq - currentBandMinFreq) * (i / (currentMaxIndex - currentMinIndex));
                             double gain = Math.Pow(currentBandFrequency / 1000.0, 0.3);
                             gain *= GainAmplifier * PsychoacousticGainAmplifier;
-                            gain /= (double)outputVolume;
+                            //gain /= (double)outputVolume;
                             valueToAdd = valueToAdd * gain;
                             break;
                         }
@@ -358,7 +372,7 @@ public class InputAudioManager : MonoBehaviour
                 // Update the running average for this freq. band
                 double oldAvgWeighted = _avgBandVolume[bandIndex] * _adaptiveNormCoef;
                 double newValWeighted = value * (1.0 - _adaptiveNormCoef);
-                _avgBandVolume[bandIndex] = oldAvgWeighted + newValWeighted;
+                _avgBandVolume[bandIndex] = (oldAvgWeighted + newValWeighted);
 
                 // Normalize based on the tracked average
                 if (_avgBandVolume[bandIndex] > 0.0001)
@@ -371,7 +385,7 @@ public class InputAudioManager : MonoBehaviour
                 }
             }
 
-            value = Double.IsNaN(value) ? 0 : value;
+            value = Double.IsNaN(value) ? 0 : (value / outputVolume);
             points.Add(new SpectrumPointData { PointValue = value, PointIndex = currentSpectrumPointIndex });
             currentSpectrumPointIndex++;
         }
@@ -393,5 +407,9 @@ public class InputAudioManager : MonoBehaviour
         Psychoacoustic = 2,
         Adaptive = 3,
         Logarithmic = 4,
+    }
+    public void SetEndPointScalar(bool applyScalar)
+    {
+        _applyEndPointScalar = applyScalar;
     }
 }

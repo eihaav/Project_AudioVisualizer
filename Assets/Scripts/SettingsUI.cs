@@ -18,7 +18,7 @@ public class SettingsUI : MonoBehaviour
 
     private Volume _volume;
     private VolumeProfile _volumeProfile;
-    public TMP_Dropdown BloomDropdown, SSRDropdown, CloudsDropdown, FogDropdown;
+    public TMP_Dropdown BloomDropdown, SSRDropdown, CloudsDropdown, FogDropdown, VolumeScalingDropdown;
     public Button OpenGraphicsButton, CloseGraphicsButton;
     public GameObject GraphicsMenu;
     private Canvas _thisCanvas;
@@ -40,6 +40,7 @@ public class SettingsUI : MonoBehaviour
         SSRDropdown.onValueChanged.AddListener(SetSSRValue);
         CloudsDropdown.onValueChanged.AddListener(SetCloudsValue);
         FogDropdown.onValueChanged.AddListener(SetFogValue);
+        VolumeScalingDropdown.onValueChanged.AddListener(SetVolumeScalingValue);
         OpenGraphicsButton.onClick.AddListener(() => OpenGraphicsMenu(true));
         CloseGraphicsButton.onClick.AddListener(() => OpenGraphicsMenu(false));
         SwitchSceneButton.onClick.AddListener(() => 
@@ -175,6 +176,17 @@ public class SettingsUI : MonoBehaviour
             SetFog(true, value);
         }
     }
+    public void SetVolumeScalingValue(int value)
+    {
+        if (value == 0)
+        {
+            SetVolumeScaling(false);
+        }
+        else
+        {
+            SetVolumeScaling(true);
+        }
+    }
     private void SetBloom(bool bloom, int quality)
     {
         if (_volumeProfile.TryGet<Bloom>(out var bloomComp))
@@ -236,6 +248,10 @@ public class SettingsUI : MonoBehaviour
         }
         PlayerPrefs.SetInt("fogValue", fog ? 1 : 0);
         PlayerPrefs.SetInt("fogQuality", quality);
+    }
+    private void SetVolumeScaling(bool enabled)
+    {
+        InputAudioManager.Instance.SetEndPointScalar(enabled);
     }
     private void OpenGraphicsMenu(bool open)
     {

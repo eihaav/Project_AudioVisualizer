@@ -37,6 +37,13 @@ public class VisualizerBarEffectDriver : EffectDriverBase
                 _barMaterial = barRenderer.material;
             }
             barRenderer.sharedMaterial = _barMaterial;
+            GameObject secondObj = Instantiate(barRenderer.gameObject, barRenderer.transform);
+            Vector3 scaledOffset = ObjectOffset;
+            scaledOffset.x /= barRenderer.transform.localScale.x;
+            scaledOffset.y /= barRenderer.transform.localScale.y;
+            scaledOffset.z /= barRenderer.transform.localScale.z;
+            secondObj.transform.localPosition = -2 * (scaledOffset * (i + 1)) + scaledOffset;
+            secondObj.transform.localScale = Vector3.one;
             _effectObjects[i] = barRenderer.gameObject;
             _effectVisuals[i] = _effectParentObjects[i].GetComponentInChildren<VisualEffect>();
             _lights[i] = _effectParentObjects[i].GetComponentInChildren<Light>();

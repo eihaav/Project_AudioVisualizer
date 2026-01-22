@@ -303,8 +303,8 @@ Material:
     m_Colors:
     - _BaseColor: {r: 1, g: 1, b: 1, a: 1}
     - _Color: {r: 1, g: 1, b: 1, a: 1}
-    - _ColorGradient1: {r: 0.4943396, g: 0.14457095, b: 0.1471811, a: 1}
-    - _ColorGradient2: {r: 1, g: 0, b: 0.0074625015, a: 1}
+    - _ColorGradient1: {r: 0.5529412, g: 0, b: 1, a: 1}
+    - _ColorGradient2: {r: 1, g: 0, b: 0.8117647, a: 1}
     - _DiffusionProfileAsset: {r: 0, g: 0, b: 0, a: 0}
     - _DoubleSidedConstants: {r: 1, g: 1, b: -1, a: 0}
     - _EmissionColor: {r: 1, g: 1, b: 1, a: 1}
